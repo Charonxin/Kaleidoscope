@@ -167,7 +167,7 @@ static std::unique_ptr<ExprAST> ParseNumberExpr() {
 /// @return 
 static std::unique_ptr<ExprAST> ParseParenExpr() {
   getNextToken();
-  auto V = ParseNumberExpr();
+  auto V = ParseExpression();
   if (!V) return nullptr;
   if (CurTok != ')') return LogError("expected ')'");
 
@@ -186,13 +186,76 @@ static std::unique_ptr<ExprAST> ParseIdenttifierExpr() {
   if (CurTok != ')') {
     while (true)
     {
-      if (auto Arg = ParseExpression())
+      if (auto Arg = ParseExpression()) 
+        Args.push_back(std::move(Arg));
+      else
+        return nullptr;
+      
+      if (CurTok == ')')
+        break;
+      if (CurTok != ',')
+        return LogError("Expected '(' or ',' in argument list");
+      getNextToken;
     }
-    
+  }
+
+  getNextToken();
+
+  return std::make_unique<CallExprAST>(IdName,std::move(Args));
+}
+
+
+/// primary
+///   ::= identifierexpr
+///   ::= numberexpr
+///   ::= parenexpr
+static std::unique_ptr<ExprAST> ParsePrimary() {
+  switch (CurTok) {
+  default:
+    return LogError("unknown token when expecting an expression");
+  case tok_identifier:
+    return ParseIdenttifierExpr();
+  case tok_number:
+    return ParseNumberExpr();
+  case '(':
+    return ParseParenExpr();
+  } 
+}
+
+/// binoprhs
+///   ::= ('+' primary)
+static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
+                                              std::unique_ptr<ExprAST> LHS) {
+  // if this is a binop, find its precedence.
+  while (true) {
+    int TokPrec = GetTokPrecedence();
+
+    // If this is a 
   }
 }
 
-static std::map<char,int> BinoPrecedence;
+
+/// BinopPrecedence - This holds the precedence for each binary operator
+/// that is defined.
+static std::map<char,int> BinopPrecedence;
+
+static int GetTokPrecedence() {
+  if (!isascii(CurTok))
+    return -1;
+  
+  // Make sure it's a declared binop.
+  int TokPrec = BinopPrecedence[CurTok];
+  if (TokPrec <= 0) 
+    return -1;
+  return TokPrec;
+}
+
+int main() {
+  BinopPrecedence['<'] = 10;
+  BinopPrecedence['+'] = 20;
+  BinopPrecedence['-'] = 20;
+  BinopPrecedence['*'] = 40;
+}
 
 
 
